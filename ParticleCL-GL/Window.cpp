@@ -53,7 +53,9 @@ int main(int argc, char **argv){
 
 	glewExperimental = GL_TRUE; 
 	glewInit();
-
+	glGetError();
+	//printf("GL Error: %s\n", gluErrorString(glGetError()));
+	
 	//glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
 	//glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 	//glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);

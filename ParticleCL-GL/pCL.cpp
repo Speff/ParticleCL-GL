@@ -1,6 +1,7 @@
 #include "pCL.h"
 
 GLfloat tempArrayP[NUM_PARTICLES][2]; // Array to initialize particles. Needs to be global
+extern float resultArray[32][2];
 
 // OpenCL Vars
 extern char* kernelSource;
@@ -174,7 +175,6 @@ void runSim(){
 	//checkErrorCode("Running Sim...\t\t", status);
 }
 
-extern float resultArray[32][2];
 
 void readBuffer(){
 	cl_int status;
@@ -244,13 +244,13 @@ void boilerplateCode(){
 	checkErrorCode("Filling platforms...\t", status);
 
 	// Retrieve the number of devices
-	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices);
+	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_ALL, 0, NULL, &numDevices);
 
 	// Allocate space for each device
 	devices = (cl_device_id*)malloc(numDevices * sizeof(cl_device_id));
 
 	// Fill in the devices
-	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL);
+	status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_ALL, numDevices, devices, NULL);
 	checkErrorCode("Filling devices...\t", status);
 
 	cl_context_properties properties[] = {
