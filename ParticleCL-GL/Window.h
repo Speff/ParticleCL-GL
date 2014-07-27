@@ -6,6 +6,8 @@
 
 void draw();
 void key(unsigned char, int, int);
+void fKey(int, int, int);
 void reshape(int, int);
 void traceMouse(int, int);
+void mouseClick(int, int, int, int);
 unsigned int defaults(unsigned int, int*, int*); 

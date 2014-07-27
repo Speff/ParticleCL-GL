@@ -1,6 +1,7 @@
 #include <GL/glew.h>
 #include <GL/glut.h>
 #include <GL/freeglut.h>
+#include <CL/cl.h>
 
 #include <vector>
 #include <fstream>

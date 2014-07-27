@@ -3,6 +3,12 @@
 extern GLuint theProgram;
 extern GLuint vao;
 extern GLuint bufposC_GL;
+extern GLuint bufFocalPoints_GL;
+extern GLuint bufnumFocalPoints_GL;
+
+extern cl_uint numFocalPoints[1];
+extern cl_float2 focalPoints[NUM_FOCALPOINTS];
+extern cl_float2 focalPointsW[NUM_FOCALPOINTS];
 
 GLfloat tempArrayC[NUM_PARTICLES][2]; // Array to initialize particles. Needs to be global
 
@@ -36,11 +42,10 @@ GLuint CreateShader(GLenum eShaderType, const std::string &strShaderFile)
 		glGetShaderInfoLog(shader, infoLogLength, NULL, strInfoLog);
 
 		const char *strShaderType = NULL;
-		switch(eShaderType)
-		{
-		case GL_VERTEX_SHADER: strShaderType = "vertex"; break;
-		case GL_GEOMETRY_SHADER: strShaderType = "geometry"; break;
-		case GL_FRAGMENT_SHADER: strShaderType = "fragment"; break;
+		switch(eShaderType){
+			case GL_VERTEX_SHADER: strShaderType = "vertex"; break;
+			case GL_GEOMETRY_SHADER: strShaderType = "geometry"; break;
+			case GL_FRAGMENT_SHADER: strShaderType = "fragment"; break;
 		}
 
 		printf("Compile failure in %s shader:\n%s\n", strShaderType, strInfoLog);
@@ -75,13 +80,13 @@ GLuint CreateProgram(const std::vector<GLuint> &shaderList)
 	GLuint program = glCreateProgram();
 	GLchar* ProgLog;
 	GLsizei progLog_size;
+	GLint status;
 
 	for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
 		glAttachShader(program, shaderList[iLoop]);
 
 	glLinkProgram(program);
 
-	GLint status;
 	glGetProgramiv (program, GL_LINK_STATUS, &status);
 	if (status == GL_FALSE)
 	{
@@ -127,11 +132,47 @@ void createVBOs(){
 	}
 	// ---------------------------------------------------------------------------------------------
 
+	// Initialize FS Array -----------------------------------
+	GLfloat tempFSarray[10];
+	tempFSarray[0] = -200/800.0;
+	tempFSarray[1] = 10/800.0;
+	tempFSarray[2] = 1/800.0;
+	tempFSarray[3] = 1/800.0;
+	tempFSarray[4] = 0/800.0;
+	tempFSarray[5] = 0/800.0;
+	tempFSarray[6] = 2/800.0;
+	tempFSarray[7] = 2/800.0;
+	tempFSarray[8] = 3/800.0;
+	tempFSarray[9] = 2/800.0;
+
+	numFocalPoints[0] = 0;
+	for(int i = 0; i < NUM_FOCALPOINTS; i++){
+		focalPoints[i].s[0] = NULL;
+		focalPoints[i].s[1] = NULL;
+
+		focalPointsW[i].s[0] = NULL;
+		focalPointsW[i].s[1] = NULL;
+	}
+	focalPoints[0].s[0] = 0;
+	focalPoints[0].s[1] = 0;
+	focalPointsW[0].s[0] = NULL;
+	focalPointsW[0].s[1] = NULL;
+
 	printf("Creating VBOs\n");
 
 	glGenBuffers(1, &bufposC_GL);
 	glBindBuffer(GL_ARRAY_BUFFER, bufposC_GL);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(tempArrayC), tempArrayC, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glGenBuffers(1, &bufFocalPoints_GL);
+	glBindBuffer(GL_ARRAY_BUFFER, bufFocalPoints_GL);
+	glBufferData(GL_ARRAY_BUFFER, 2*sizeof(focalPoints), focalPoints, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glGenBuffers(1, &bufnumFocalPoints_GL);
+	glBindBuffer(GL_ARRAY_BUFFER, bufnumFocalPoints_GL);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(numFocalPoints), numFocalPoints, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -148,8 +189,6 @@ void initGL(){
 	printf("Shaders detached\n");
 
 	createVBOs();
-
-
 
 	//glUseProgram(theProgram);
 	glGenVertexArrays(1, &vao);

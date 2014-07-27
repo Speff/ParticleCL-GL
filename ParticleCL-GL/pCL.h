@@ -18,7 +18,5 @@ void compileKernel();
 void setMemMappings();
 void runSim();
 void readBuffer();
-void writeMousePosToBuffers(cl_float2);
+void writeFocalPointsToBuffers();
 void checkErrorCode(char*, int);
-bool use_this_cl_platform(cl_platform_id);
-bool use_this_cl_device(cl_device_id);

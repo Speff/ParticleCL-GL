@@ -7,10 +7,16 @@ float mouseX = 0;
 float mouseY = 0;
 float fps_counter = 0.0f;
 int loop_counter = 0;
+bool fullscreen = false;
+GLint windowSizeX = WIDTH;
+GLint windowSizeY = HEIGHT;
 
 // OpenCL Variables
 char* kernelSource;
 cl_uint numDevices;
+cl_uint numFocalPoints[1];
+cl_float2 focalPoints[5];
+cl_float2 focalPointsW[5];
 cl_device_id *devices;
 cl_program program;
 cl_context context;
@@ -19,11 +25,14 @@ cl_kernel kernel;
 cl_mem bufposC_CL;
 cl_mem bufposP_CL;
 cl_mem bufFS_CL;
-cl_mem bufMousePos;
+cl_mem bufFocalPoints_CL;
+cl_mem bufnumFocalPoints_CL;
 
 // OpenGL Variables
 GLuint theProgram;
 GLuint bufposC_GL;
+GLuint bufFocalPoints_GL;
+GLuint bufnumFocalPoints_GL;
 GLuint vao;
 
 int main(int argc, char **argv){
@@ -33,19 +42,21 @@ int main(int argc, char **argv){
 	glutInitWindowSize(WIDTH,HEIGHT);
 	glutCreateWindow("Test");
 	glutInitDisplayMode(GLUT_DEPTH || GLUT_DOUBLE || GLUT_RGB);
+
 	glutKeyboardFunc(key);
+	glutSpecialFunc(fKey);
 	glutDisplayFunc(draw);
 	glutReshapeFunc(reshape);
-	glutPassiveMotionFunc(traceMouse);
+	//glutPassiveMotionFunc(traceMouse);
+	glutMouseFunc(mouseClick);
 	glutIdleFunc(NULL);
-	//glMatrixMode(GL_PROJECTION);
 
 	glewExperimental = GL_TRUE; 
 	glewInit();
 
-	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+	//glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+	//glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+	//glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
@@ -75,31 +86,49 @@ void draw(){
 
 	// OpenCL Processing ------------------------------------------------
 	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufposC_CL, NULL, NULL, NULL);
+	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufFocalPoints_CL, NULL, NULL, NULL);
+	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, NULL, NULL, NULL);
 
 	timeElapsed[0] = glutGet(GLUT_ELAPSED_TIME);
 
 	runSim();
+	clFinish(cmdQueue);
 
 	timeElapsed[1] = glutGet(GLUT_ELAPSED_TIME);
 
 	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufposC_CL, NULL, NULL, NULL);
+	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufFocalPoints_CL, NULL, NULL, NULL);
+	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, NULL, NULL, NULL);
 	// ---------------------------------------------------------------------
 
 	timeElapsed[2] = glutGet(GLUT_ELAPSED_TIME);
 
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram(theProgram);
-	//printf("UseProgram\t\t%i\n", glGetError());
-	glBindBuffer(GL_ARRAY_BUFFER, bufposC_GL);
+
 	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, bufposC_GL);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glUniform1i(glGetUniformLocation(theProgram, "timePassed"), glutGet(GLUT_ELAPSED_TIME));
+
 
 	timeElapsed[3] = glutGet(GLUT_ELAPSED_TIME);
 
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	glWindowPos2d(20, 20);
+	glDisable(GL_TEXTURE);
+	glDisable(GL_TEXTURE_2D);
+	glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)"Testing");
+	glEnable(GL_TEXTURE);
+	glEnable(GL_TEXTURE_2D);
+
+
 	glDrawArrays(GL_POINTS, 0, NUM_PARTICLES);
+	glFinish();
 
 	timeElapsed[4] = glutGet(GLUT_ELAPSED_TIME);
 
@@ -110,41 +139,29 @@ void draw(){
 
 	timeElapsed[5] = glutGet(GLUT_ELAPSED_TIME);
 
-	///*printf("Time to acquire objects\t\t%i\n", timeElapsed[0]-timeStarted);
+	//printf("Time to acquire objects\t\t%i\n", timeElapsed[0]-timeStarted);
 	//printf("Time to run kernel\t\t%i\n", timeElapsed[1]-timeElapsed[0]);
 	//printf("Time to release objects\t\t%i\n", timeElapsed[2]-timeElapsed[1]);
 	//printf("Time to initialize GLbuf\t%i\n", timeElapsed[3]-timeElapsed[2]);
 	//printf("Time to draw triangles\t\t%i\n", timeElapsed[4]-timeElapsed[3]);
 	//printf("Time to release GLbuf\t\t%i\n", timeElapsed[5]-timeElapsed[4]);
-	//printf("Total time\t\t\t%i\n\n", timeElapsed[5]-timeStarted);*/
+	//printf("Total time\t\t\t%i\n\n", timeElapsed[5]-timeStarted);
 
-	printf("Time to acquire objects\t\t%i\n", timeElapsed[0]-timeStarted);
-	printf("Time to run kernel\t\t%i\n", timeElapsed[1]-timeStarted);
-	printf("Time to release objects\t\t%i\n", timeElapsed[2]-timeStarted);
-	printf("Time to initialize GLbuf\t%i\n", timeElapsed[3]-timeStarted);
-	printf("Time to draw triangles\t\t%i\n", timeElapsed[4]-timeStarted);
-	printf("Time to release GLbuf\t\t%i\n", timeElapsed[5]-timeStarted);
-	printf("Total time\t\t\t%i\n", timeElapsed[5]-timeStarted);
 
 	loop_counter++;
 	fps_counter += (timeElapsed[5]-(float)timeStarted)/120;
 	if(loop_counter%120 == 0){
-		printf("FPS: %f\n", 1000/fps_counter);
+		printf("FPS: %f\nTime: %f\n", 1000.0f/fps_counter, fps_counter);
 		fps_counter = 0;
 	}
-
-
 	glutPostRedisplay();
 }
 
 void key(unsigned char key, int xmouse, int ymouse){	
 	switch (key){
-	case 'w':
-		glClearColor(1.0, 0.0, 1.0, 1.0);
-		break;
-
-	case 'r': 
-		glClearColor(0.0, 0.0, 1.0, 1.0);
+	case 'z':
+		numFocalPoints[0] = 0;
+		writeFocalPointsToBuffers();
 		break;
 
 	case ' ': 
@@ -154,26 +171,56 @@ void key(unsigned char key, int xmouse, int ymouse){
 	default:
 		break;
 	}
-	glutPostRedisplay(); //request display() call ASAP
+}
+
+void fKey(int key, int xmouse, int ymouse){	
+	switch (key){
+	case GLUT_KEY_F1:
+		break;
+	default:
+		break;
+	}
 }
 
 void reshape(int w, int h){
-	/*if(w > h)
-		glViewport(0, 0, (GLsizei) w/((float)w/h), (GLsizei) h);
-	else if (h > w)
-		glViewport(0, 0, (GLsizei) w, (GLsizei) h/((float)h/w));
-	else*/
-		glViewport(0, 0, (GLsizei) w, (GLsizei) h);
+	glViewport(0, 0, (GLsizei) w, (GLsizei) h);
+	windowSizeX = w;
+	windowSizeY = h;
+	glUniform2i(glGetUniformLocation(theProgram, "windowSize"), w, h);
+
+	cl_float AS = (float)w/(float)h;
+	clSetKernelArg(kernel, 5, sizeof(cl_float), &AS);
 }
 
 void traceMouse(int x, int y){
-	cl_float2 mousePos;
-	mousePos.s[0] = -WIDTH/(float)HEIGHT + 2*x/(float)HEIGHT; // Found through trial and error
-	mousePos.s[1] = -(-1 + 2*y/(float)HEIGHT);
 
-	writeMousePosToBuffers(mousePos);
+}
 
-	//printf("%1.3f, %1.3f\n", mousePos.s[0], mousePos.s[1]);
+void mouseClick(int buttonClicked, int state, int x, int y){
+	if(buttonClicked == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
+		if(numFocalPoints[0] >= NUM_FOCALPOINTS-1);
+		else{
+			focalPoints[numFocalPoints[0]].s[0] = -windowSizeX/(float)windowSizeY + 2*x/(float)windowSizeY;
+			focalPoints[numFocalPoints[0]].s[1] = -(-1 + 2*y/(float)windowSizeY);
+			focalPointsW[numFocalPoints[0]].s[0] = (float)x;
+			focalPointsW[numFocalPoints[0]].s[1] = (float)y;
+
+			numFocalPoints[0]++;
+			writeFocalPointsToBuffers();
+		}
+	}
+	else if(buttonClicked == GLUT_RIGHT_BUTTON && state == GLUT_DOWN){
+		if(numFocalPoints[0] <= 0);
+		else{
+			focalPoints[numFocalPoints[0]].s[0] = NULL;
+			focalPoints[numFocalPoints[0]].s[1] = NULL;
+			focalPointsW[numFocalPoints[0]].s[0] = NULL;
+			focalPointsW[numFocalPoints[0]].s[1] = NULL;
+
+			numFocalPoints[0]--;
+			writeFocalPointsToBuffers();
+		}
+	}
 }
 
 unsigned int defaults(unsigned int displayMode, int &width, int &height) {return displayMode;}

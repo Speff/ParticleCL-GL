@@ -10,46 +10,22 @@ extern cl_program program;
 extern cl_context context;
 extern cl_command_queue cmdQueue;
 extern cl_kernel kernel;
+extern cl_uint numFocalPoints[1];
+extern cl_float2 focalPoints[NUM_FOCALPOINTS];
+extern cl_float2 focalPointsW[NUM_FOCALPOINTS];
 
 extern cl_mem bufposC_CL;
 extern cl_mem bufposP_CL;
 extern cl_mem bufFS_CL;
-extern cl_mem bufMousePos;
+extern cl_mem bufFocalPoints_CL;
+extern cl_mem bufnumFocalPoints_CL;
 
 // OpenGL Vars
 extern GLuint bufposC_GL;
-
-bool use_this_cl_platform(cl_platform_id platform){
-	size_t extensions_size;
-	char * extensions;
-
-	clGetPlatformInfo( platform, CL_PLATFORM_EXTENSIONS, 0, NULL, &extensions_size);
-	extensions = new char[extensions_size];
-	clGetPlatformInfo( platform, CL_PLATFORM_EXTENSIONS, extensions_size, extensions, NULL);
-
-	std::string ext = extensions;
-	bool use_this_platform = ext.find("cl_khr_gl_sharing") != std::string::npos;
-
-	delete[] extensions;
-
-	return use_this_platform;
-}
-
-bool use_this_cl_device(cl_device_id device){
-	size_t exensions_size;
-	char * extensions;
-
-	clGetDeviceInfo( device, CL_DEVICE_EXTENSIONS, 0, NULL, &exensions_size);
-	extensions = new char[exensions_size];
-	clGetDeviceInfo( device, CL_DEVICE_EXTENSIONS, exensions_size, extensions, NULL);
-
-	std::string ext = extensions;
-	bool use_this_device = ext.find("cl_khr_gl_sharing") != std::string::npos;
-
-	delete[] extensions;
-
-	return use_this_device;
-}
+extern GLuint bufFocalPoints_GL;
+extern GLuint bufnumFocalPoints_GL;
+extern GLuint numFocalPointsBindingIndex;
+extern GLuint focalPointsBindingIndex;
 
 void initCL(){
 	boilerplateCode();
@@ -66,30 +42,48 @@ void killCL(){
 	free(devices);
 }
 
-void writeMousePosToBuffers(cl_float2 mousePos){
+void writeFocalPointsToBuffers(){
 	cl_int status;
-	cl_float2 mouseLoc[1];
 
+	//printf("Number of focal points: %i\n", numFocalPoints[0]);
 
-	mouseLoc[0] = mousePos;
+	//for(int i = 0; i < numFocalPoints[0]; i++){
+	//	printf("Point %i\t\t%1.3f, %1.3f\n", i, focalPointsW[i].s[0],focalPointsW[i].s[1]);
+	//}
+
+	
+
+	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufFocalPoints_CL, NULL, NULL, NULL);
+	//checkErrorCode("Aquiring bufFocalPoints_CL:\t\t", status);
+	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, NULL, NULL, NULL);
+	//checkErrorCode("Aquiring bufnumFocalPoints_CL:\t\t", status);
+
 
 	// Write arrays to the device buffers. bufPos is unnecessary
-	status = clEnqueueWriteBuffer(cmdQueue, bufMousePos, CL_TRUE, 0, sizeof(cl_float2), mouseLoc, 0, NULL, NULL);
-	//checkErrorCode("Writing bufMousePos...\t", status);
+	status = clEnqueueWriteBuffer(cmdQueue, bufFocalPoints_CL, CL_FALSE, 0, NUM_FOCALPOINTS*sizeof(cl_float2), focalPoints, 0, NULL, NULL);
+	//checkErrorCode("Writing bufFocalPoints_CL...\t", status);
+	status = clEnqueueWriteBuffer(cmdQueue, bufFocalPoints_CL, CL_FALSE, NUM_FOCALPOINTS*sizeof(cl_float2), NUM_FOCALPOINTS*sizeof(cl_float2), focalPointsW, 0, NULL, NULL);
+	//checkErrorCode("Writing bufFocalPointsW_CL...\t", status);
+	status = clEnqueueWriteBuffer(cmdQueue, bufnumFocalPoints_CL, CL_TRUE, 0, sizeof(cl_uint), numFocalPoints, 0, NULL, NULL);
+	//checkErrorCode("Writing bufnumFocalPoints_CL...\t", status);
+
+	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufFocalPoints_CL, NULL, NULL, NULL);
+	//checkErrorCode("Releasing bufC:\t\t", status);
+	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, NULL, NULL, NULL);
+	//checkErrorCode("Releasing bufC:\t\t", status);
 }
 
 void setMemMappings(){
-	cl_int status;
+	cl_int status;						// Used to check for errors
 
-	cl_float deadZone = DEADZONE;
-	cl_float velD = VEL_DAMP;
-	cl_float AS = WIDTH/(float)HEIGHT;
-	cl_float2 MP[1];
+	cl_float deadZone = DEADZONE;		// Deadzone around focal points
+	cl_float velD = VEL_DAMP;			// Damping constant for particle velocity
+	cl_float AS = WIDTH/(float)HEIGHT;	// Aspect ratio for kernel calculations
+	cl_float2 MP[1];					// Mouse Position buffer to initialize kernel input
 
 	// Initializing Particle Array ----------------------------
-	//float** tempArray;
-	GLfloat nCol = sqrtl(NUM_PARTICLES);
-	GLfloat isqrt = 1/sqrtl(NUM_PARTICLES); // Offset between points
+	float nCol = sqrtl(NUM_PARTICLES);	//  Number of particles in a row
+	float isqrt = 1/sqrtl(NUM_PARTICLES);// Offset between particles
 	long currRow = 0;
 	long currCol = 0;
 
@@ -98,50 +92,56 @@ void setMemMappings(){
 			++currRow;
 			currCol = 0;
 		}
-		// OpenGL draws from [-1, 1]. 
+		// Spread particles evenly from [-1,+1]. Spacing is _isqrt_
 		tempArrayP[i][0] = 2*currCol*isqrt - 1 + isqrt;
 		tempArrayP[i][1] = 2*currRow*isqrt - 1 + isqrt;
 		++currCol;
 	}
 
-	// Initialize Mouse Position Array ----------------------
-	MP[0].s[0] = 0.0f;
-	MP[0].s[1] = 0.0f;
-
-	// Initialize FS Array -----------------------------------
-	cl_float tempFSarray[10];
-	tempFSarray[0] = -10/800.0;
-	tempFSarray[1] = -10/800.0;
-	tempFSarray[2] = 1/800.0;
-	tempFSarray[3] = 1/800.0;
-	tempFSarray[4] = 0/800.0;
-	tempFSarray[5] = 0/800.0;
-	tempFSarray[6] = 2/800.0;
-	tempFSarray[7] = 2/800.0;
-	tempFSarray[8] = 3/800.0;
-	tempFSarray[9] = 2/800.0;
+	// Initialize Field Strength Array --------------------------
+	cl_float tempFSarray[2];
+	tempFSarray[0] = -200/800.0/20;
+	tempFSarray[1] = 10/800.0/20;
+	//tempFSarray[2] = 1/800.0;
+	//tempFSarray[3] = 1/800.0;
+	//tempFSarray[4] = 0/800.0;
+	//tempFSarray[5] = 0/800.0;
+	//tempFSarray[6] = 2/800.0;
+	//tempFSarray[7] = 2/800.0;
+	//tempFSarray[8] = 3/800.0;
+	//tempFSarray[9] = 2/800.0;
 
 
-	// Create a buffer object
+	// Create buffer objects --------------------------------------
+	// Current Position Buffer (posC) is created from a GL VBO since this is the buffer to draw
 	bufposC_CL = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, bufposC_GL, &status);
 	checkErrorCode("Creating bufposC_CL...\t", status);
+	// Previous Position Buffer (posP) is purely a CL buffer since it has no interaction with GL
 	bufposP_CL = clCreateBuffer(context, CL_MEM_READ_WRITE, NUM_PARTICLES*sizeof(cl_float2), NULL, &status);
 	checkErrorCode("Creating bufposP_CL...\t", status);
-	bufFS_CL = clCreateBuffer(context, CL_MEM_READ_ONLY, 10*sizeof(cl_float), NULL, &status);
+	// Field Strength Buffer is only used to update particle position in CL
+	bufFS_CL = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(tempFSarray), NULL, &status);
 	checkErrorCode("Creating bufFSAry...\t", status);
-	bufMousePos = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float2), NULL, &status);
-	checkErrorCode("Creating buf (MousePos)...", status);
+	// Focal Point information can possibly be used in the future in a GLSL shader, so it's made from a VBO
+	bufFocalPoints_CL = clCreateFromGLBuffer(context, CL_MEM_READ_ONLY, bufFocalPoints_GL, &status);
+	checkErrorCode("Creating buf (bufFocalPoints_CL)...\t", status);
+	// Num Focal Points Buffer used to show amount of focal points in use
+	bufnumFocalPoints_CL = clCreateFromGLBuffer(context, CL_MEM_READ_ONLY, bufnumFocalPoints_GL, &status);
+	checkErrorCode("Creating buf (bufnumFocalPoints_CL)...\t", status);
 
-	// Copying bufC ----------------------------------
+	// Filling buffers -------------------------------
+	// Release Current Position Buffer from GL to address it
 	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufposC_CL, NULL, NULL, NULL);
 	checkErrorCode("Aquiring bufC:\t\t", status);
 
+	// Initialize the Field Strength Buffer to the values initialized in tempFSarray
 	status = clEnqueueWriteBuffer(cmdQueue, bufFS_CL, CL_FALSE, 0, sizeof(tempFSarray), tempFSarray, NULL, NULL, NULL);
 	checkErrorCode("Copying to bufFS...\t", status);
-
+	// Initialize the Previous Position Buffer with the Current Position Buffer
 	status = clEnqueueCopyBuffer(cmdQueue, bufposC_CL, bufposP_CL, 0, 0, NUM_PARTICLES*sizeof(cl_float2), NULL, NULL, NULL);
 	checkErrorCode("Copying to bufPosP...\t", status);
-	
+
+	// Release GL VBO after use
 	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufposC_CL, NULL, NULL, NULL);
 	checkErrorCode("Releasing bufC:\t\t", status);
 	// -----------------------------------------------
@@ -154,8 +154,10 @@ void setMemMappings(){
 	status = clSetKernelArg(kernel, 3, sizeof(cl_float), &deadZone); checkErrorCode("Setting KernelArg(3)...\t", status);
 	status = clSetKernelArg(kernel, 4, sizeof(cl_float), &velD); checkErrorCode("Setting KernelArg(4)...\t", status);
 	status = clSetKernelArg(kernel, 5, sizeof(cl_float), &AS); checkErrorCode("Setting KernelArg(5)...\t", status);
-	status = clSetKernelArg(kernel, 6, sizeof(cl_mem), &bufMousePos); checkErrorCode("Setting KernelArg(6)...\t", status);
+	status = clSetKernelArg(kernel, 6, sizeof(cl_mem), &bufnumFocalPoints_CL); checkErrorCode("Setting KernelArg(6)...\t", status);
+	status = clSetKernelArg(kernel, 7, sizeof(cl_mem), &bufFocalPoints_CL); checkErrorCode("Setting KernelArg(7)...\t", status);
 
+	// Wait until command queue events are completed
 	clFinish(cmdQueue);
 }
 
@@ -178,12 +180,9 @@ void readBuffer(){
 	cl_int status;
 
 	// Read the device output buffer to the host output array
-	status = clEnqueueReadBuffer(cmdQueue, bufposC_CL, CL_FALSE, 0, 32 * sizeof(cl_float2), resultArray, 0, NULL, NULL);
-	checkErrorCode("Reading bufPos...\t", status);
-	clFinish(cmdQueue);
-
-	//printf("Particle: %i\tLocation:\t%f, %f\n\t\t\t\t%f, %f\n", (int) kernelTestVal[0].s[1], kernelTestVal[1].s[0], kernelTestVal[1].s[1], kernelTestVal[2].s[0], kernelTestVal[2].s[1]);
-	
+	//status = clEnqueueReadBuffer(cmdQueue, bufposC_CL, CL_FALSE, 0, 32 * sizeof(cl_float2), resultArray, 0, NULL, NULL);
+	//checkErrorCode("Reading bufPos...\t", status);
+	//clFinish(cmdQueue);
 }
 
 void compileKernel(){
@@ -192,11 +191,11 @@ void compileKernel(){
 	size_t sourceSize;
 	cl_int status;
 
+	// Read kernel source code into _kernelSource_ ------------------------
 	fp = fopen(fileLocation, "r");
 	if(!fp){
 		printf("Can't read kernel source\n");
 	}
-
 	fseek(fp, 0, SEEK_END);
 	sourceSize = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
@@ -301,7 +300,6 @@ void checkErrorCode(char* action, int errorCode){
 		if(errorCode == CL_INVALID_DEVICE_TYPE) printf("CL_INVALID_DEVICE_TYPE\n");
 		if(errorCode == CL_INVALID_PLATFORM) printf("CL_INVALID_PLATFORM\n");
 		if(errorCode == CL_INVALID_PROPERTY) printf("CL_INVALID_PROPERTY\n");
-		//if(errorCode == CL_INVALID_D3D10_DEVICE_KHR ) printf("CL_INVALID_D3D10_DEVICE_KHR\n");
 		if(errorCode == CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR ) printf("CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR\n");			
 		if(errorCode == CL_INVALID_DEVICE) printf("CL_INVALID_DEVICE\n");
 		if(errorCode == CL_INVALID_CONTEXT) printf("CL_INVALID_CONTEXT\n");

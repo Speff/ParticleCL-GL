@@ -12,82 +12,76 @@ __kernel void updateParticle(__global float2* posC,
 							 const float deadzone,  
 							 const float velDamper_input, 
 							 const float aspectRatio,
-							 const __global float2* mousePos){
+							 const __global uint* numFocalPoints,
+							 const __global float2* focalPoints){
 
-	float2 oldPos      = (float2)(0.0f, 0.0f);
-	float2 posC_new    = (float2)(0.0f, 0.0f);
-	float2 origin      = (float2)(0.0f, 0.0f);
-	float dist;
+	const float2 origin= (float2)(0.0f, 0.0f);
+	float2 aVect	   = (float2)(0.0f, 0.0f);
 	float2 pVect;
-	float2 aVect;
+	float2 mP;
+	float2 oldPos;
+	float2 posC_new;
+	float dist;
 	int fsToUse;
+	int accelLoop = 0;
 
-	float X_MAX = aspectRatio;
-	float X_MIN = -aspectRatio;
-	float Y_MAX = 1.0f;
-	float Y_MIN = -1.0f;
+	const float X_MAX = aspectRatio;
+	const float X_MIN = -aspectRatio;
+	const float Y_MAX = 1.0f;
+	const float Y_MIN = -1.0f;
 
-	float2 AR_Matrix;
-	AR_Matrix.x = (float)aspectRatio;
-	AR_Matrix.y = 1.0;
+	const float2 AR_Matrix = (float2)(aspectRatio, 1.0f);
 
 	int gid = get_global_id(0); 
 
-	float2 pC = posC[gid]*AR_Matrix;
-	float2 pO = posO[gid]*AR_Matrix;
-	float2 mP = mousePos[0];
-
-	// If mousePos = NULL, assume mousePos = origin
-	pVect = (mP - pC);
-	dist = distance(pVect, origin);
-
-	if(dist < deadzone) fsToUse = 0;
-	else if(dist < 2*deadzone) fsToUse = 1;
-	else if(dist < 3*deadzone) fsToUse = 2;
-	else if(dist < 4*deadzone) fsToUse = 3;
-	else if(dist < 5*deadzone) fsToUse = 4;
-	else if(dist < 6*deadzone) fsToUse = 5;
-	else if(dist < 7*deadzone) fsToUse = 6;
-	else if(dist < 8*deadzone) fsToUse = 7;
-	else if(dist < 9*deadzone) fsToUse = 8;
-	else if(dist > 9*deadzone) fsToUse = 9;
+	const float2 pC = posC[gid]*AR_Matrix;
+	const float2 pO = posO[gid]*AR_Matrix;
 
 
-	//if(pC.x < -1 || pC.y < -1 || pC.x > aspectRatio || pC.y > 1){
-	//	velDamper = 0;
-	//	aVect = origin;
-	//}
-	
+	while(accelLoop < numFocalPoints[0]){
+		mP = focalPoints[accelLoop];
 
-	// Acceleration Vector = Field Strength * Direction
-	aVect = fieldStrength[fsToUse] * pVect/dist;
+		pVect = (mP - pC);
+		dist = fast_length(pVect);
 
-	//if(mP.x < X_MIN || mP.y < Y_MIN || mP.x > X_MAX || mP.y > Y_MAX){
-	//	posC_new = pC + velDamper*(pC - pO);
-	//}
-	//else posC_new = pC + velDamper*(pC - pO) + aVect;
+		if(dist < deadzone) fsToUse = 0;
+		if(dist >= deadzone) fsToUse = 1;
+		 // if(dist > 2*deadzone) fsToUse = 2;
+		 // if(dist > 3*deadzone) fsToUse = 3;
+		 // if(dist > 4*deadzone) fsToUse = 4;
+		 // if(dist > 5*deadzone) fsToUse = 5;
+		 // if(dist > 6*deadzone) fsToUse = 6;
+		 // if(dist > 7*deadzone) fsToUse = 7;
+		 // if(dist > 8*deadzone) fsToUse = 8;
+		 // if(dist > 9*deadzone) fsToUse = 9;
+
+
+		// Acceleration Vector = Field Strength * Direction
+		//aVect += fieldStrength[fsToUse] * pVect/dist;
+		aVect += fieldStrength[fsToUse] * pVect/dist;
+		++accelLoop;
+	}
+
 	posC_new = pC + velDamper_input*(pC - pO) + aVect;
-	//posC_new = posC[gid] + velDamper*(posC[gid] - posO[gid]);
-
 	oldPos = pC;
 
-	// Bounds Checking. If the particle is outside the window, it wont draw it
-	if(posC_new.x < X_MIN){
-		posC_new.x = 2*X_MIN-posC_new.x;
-		oldPos.x = 2*X_MIN-oldPos.x;
-	}
-	else if(posC_new.y < Y_MIN){
-		posC_new.y = 2*Y_MIN-posC_new.y;
-		oldPos.y = 2*Y_MIN-oldPos.y;
-	}
-	else if(posC_new.x > X_MAX){
-		posC_new.x = 2*X_MAX - posC_new.x;
-		oldPos.x = 2*X_MAX - oldPos.x;
-	}
-	else if(posC_new.y > Y_MAX){
-		posC_new.y = 2*Y_MAX - posC_new.y;
-		oldPos.y = 2*Y_MAX - oldPos.y;
-	}
+	// Bounds Checking.
+	// if(posC_new.x < X_MIN){
+	// 	posC_new.x = 2*X_MIN-posC_new.x;
+	// 	oldPos.x = 2*X_MIN-oldPos.x;
+	// }
+	// else if(posC_new.y < Y_MIN){
+	// 	posC_new.y = 2*Y_MIN-posC_new.y;
+	// 	oldPos.y = 2*Y_MIN-oldPos.y;
+	// }
+	// else if(posC_new.x > X_MAX){
+	// 	posC_new.x = 2*X_MAX - posC_new.x;
+	// 	oldPos.x = 2*X_MAX - oldPos.x;
+	// }
+	// else if(posC_new.y > Y_MAX){
+	// 	posC_new.y = 2*Y_MAX - posC_new.y;
+	// 	oldPos.y = 2*Y_MAX - oldPos.y;
+	// }
 
 	
 	posO[gid] = oldPos/AR_Matrix;

@@ -4,4 +4,6 @@
 #define		VERBOSE			true
 
 #define		DEADZONE		0.1f
-#define		VEL_DAMP		0.990f
+//#define		VEL_DAMP		0.990f
+#define		VEL_DAMP		0.99f
+#define		NUM_FOCALPOINTS	5
