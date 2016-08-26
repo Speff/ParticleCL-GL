@@ -10,6 +10,7 @@ The following files need to be in order for the program to run
 - particle.vert (OpenCL Vertex Shader)
 - freeglut.dll (\*)
 - glew32.dll (\*)
+
 (\*) = Unnecessary if program is built against static libraries. The binary which comes with the package does not need glew32.dll
 
 ___
