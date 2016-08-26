@@ -1,5 +1,5 @@
 # ParticleCL-GL
-##Created by Sahil Patel (/u/Speff)
+###Created by Sahil Patel (/u/Speff)
 
 Program demonstrating OpenCL-OpenGL Interoperability. Left-click within the window to create agravitational well which attracts simulated particles (and repels them if they get too close to the middle). Multiple wells can be created at one time. The last well created can be deleted by right clicking within the window. All wells can be deleted at once by pressing the 'z' key. 
 
@@ -8,9 +8,9 @@ The following files need to be in order for the program to run
 - pkernel (OpenCL kernel which computes particle update logic)
 - particle.frag (OpenGL Fragmentation Shader)
 - particle.vert (OpenCL Vertex Shader)
-- freeglut.dll (*)
-- glew32.dll (*)
-(*) = Unnecessary if program is built against static libraries. The binary which comes with the package does not need glew32.dll
+- freeglut.dll (\*)
+- glew32.dll (\*)
+(\*) = Unnecessary if program is built against static libraries. The binary which comes with the package does not need glew32.dll
 
 ___
 make instructions:
