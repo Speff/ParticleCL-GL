@@ -229,6 +229,9 @@ void compileKernel(){
 void boilerplateCode(){
 	// Use this to check the output of each API call
 	cl_int status;
+	cl_int platformNumber = 0;
+	cl_int platformType = CL_DEVICE_TYPE_ALL;
+	cl_int deviceNumber = 0;
 
 	// Retrieve the number of platforms
 	cl_uint numPlatforms = 0;
@@ -244,19 +247,19 @@ void boilerplateCode(){
 	checkErrorCode("Filling platforms...\t", status);
 
 	// Retrieve the number of devices
-	status = clGetDeviceIDs(platforms[1], CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices);
+	status = clGetDeviceIDs(platforms[platformNumber], platformType, 0, NULL, &numDevices);
 
 	// Allocate space for each device
 	devices = (cl_device_id*)malloc(numDevices * sizeof(cl_device_id));
 
 	// Fill in the devices
-	status = clGetDeviceIDs(platforms[1], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL);
+	status = clGetDeviceIDs(platforms[platformNumber], platformType, numDevices, devices, NULL);
 	checkErrorCode("Filling devices...\t", status);
 
 	cl_context_properties properties[] = {
 		CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(), // WGL Context  
 		CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(), // WGL HDC
-		CL_CONTEXT_PLATFORM, (cl_context_properties)platforms[1], // OpenCL platform
+		CL_CONTEXT_PLATFORM, (cl_context_properties)platforms[platformNumber], // OpenCL platform
 		0
 	};	
 
@@ -265,15 +268,15 @@ void boilerplateCode(){
 	checkErrorCode("Creating context...\t", status);
 
 	// Create a command queue and associate it with the device
-	cmdQueue = clCreateCommandQueue(context, devices[0], 0, &status);
+	cmdQueue = clCreateCommandQueue(context, devices[deviceNumber], 0, &status);
 	checkErrorCode("Creating cmd queue...\t", status);
 
 	char* devName;
 	size_t nameSize;
-	clGetDeviceInfo(devices[0], CL_DEVICE_NAME, 0, NULL, &nameSize);
+	clGetDeviceInfo(devices[deviceNumber], CL_DEVICE_NAME, 0, NULL, &nameSize);
 	devName = (char*)malloc(nameSize);
-	clGetDeviceInfo(devices[0], CL_DEVICE_NAME, nameSize, devName, NULL);
-	if(status == CL_SUCCESS && VERBOSE) printf("Using device:\t\t%s\n", devName); 
+	clGetDeviceInfo(devices[deviceNumber], CL_DEVICE_NAME, nameSize, devName, NULL);
+	/*if(status == CL_SUCCESS && VERBOSE) */printf("Using device:\t\t%s\n", devName); 
 
 	free(platforms);
 	free(devName);
