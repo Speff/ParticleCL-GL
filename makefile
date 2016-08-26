@@ -3,6 +3,7 @@ CC=g++
 CFLAGS=-I$(INCDIR) -m32 -Wall -static-libgcc -static-libstdc++
 STATIC_FLAGS=-DGLEW_STATIC #-FREEGLUT_STATIC
 
+BINDIR=./bin
 SRCDIR=./src
 OBJDIR=obj
 LIBDIR=./lib
@@ -18,7 +19,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
 	$(CC) $(STATIC_FLAGS) -c -o $@ $< $(CFLAGS)
 
 ParticleCL-GL: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) -L$(LIBDIR) $(LIBS)
+	$(CC) -o $(BINDIR)/$@ $^ $(CFLAGS) -L$(LIBDIR) $(LIBS)
 
 .PHONY: clean
 

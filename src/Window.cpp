@@ -40,7 +40,7 @@ int main(int argc, char **argv){
 	glutInit(&argc, argv);
 	glutInitContextVersion(3, 3);
 	glutInitWindowSize(WIDTH,HEIGHT);
-	glutCreateWindow("Test");
+	glutCreateWindow("OpenCL-GL Demo");
 	glutInitDisplayMode(GLUT_DEPTH || GLUT_DOUBLE || GLUT_RGB);
 
 	glutKeyboardFunc(key);
@@ -82,14 +82,14 @@ int main(int argc, char **argv){
 }
 
 void draw(){
-	cl_int status;
+	//cl_int status;
 	int timeStarted = glutGet(GLUT_ELAPSED_TIME);
 	int timeElapsed[6];
 
 	// OpenCL Processing ------------------------------------------------
-	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufposC_CL, NULL, NULL, NULL);
-	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufFocalPoints_CL, NULL, NULL, NULL);
-	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, NULL, NULL, NULL);
+	clEnqueueAcquireGLObjects(cmdQueue, 1, &bufposC_CL, 0, NULL, NULL);
+	clEnqueueAcquireGLObjects(cmdQueue, 1, &bufFocalPoints_CL, 0, NULL, NULL);
+	clEnqueueAcquireGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, 0, NULL, NULL);
 
 	timeElapsed[0] = glutGet(GLUT_ELAPSED_TIME);
 
@@ -98,9 +98,9 @@ void draw(){
 
 	timeElapsed[1] = glutGet(GLUT_ELAPSED_TIME);
 
-	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufposC_CL, NULL, NULL, NULL);
-	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufFocalPoints_CL, NULL, NULL, NULL);
-	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, NULL, NULL, NULL);
+	clEnqueueReleaseGLObjects(cmdQueue, 1, &bufposC_CL, 0, NULL, NULL);
+	clEnqueueReleaseGLObjects(cmdQueue, 1, &bufFocalPoints_CL, 0, NULL, NULL);
+	clEnqueueReleaseGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, 0, NULL, NULL);
 	// ---------------------------------------------------------------------
 
 	timeElapsed[2] = glutGet(GLUT_ELAPSED_TIME);
@@ -214,10 +214,10 @@ void mouseClick(int buttonClicked, int state, int x, int y){
 	else if(buttonClicked == GLUT_RIGHT_BUTTON && state == GLUT_DOWN){
 		if(numFocalPoints[0] <= 0);
 		else{
-			focalPoints[numFocalPoints[0]].s[0] = NULL;
-			focalPoints[numFocalPoints[0]].s[1] = NULL;
-			focalPointsW[numFocalPoints[0]].s[0] = NULL;
-			focalPointsW[numFocalPoints[0]].s[1] = NULL;
+			focalPoints[numFocalPoints[0]].s[0] = 0.0f;
+			focalPoints[numFocalPoints[0]].s[1] = 0.0f;
+			focalPointsW[numFocalPoints[0]].s[0] = 0.0f;
+			focalPointsW[numFocalPoints[0]].s[1] = 0.0f;
 
 			numFocalPoints[0]--;
 			writeFocalPointsToBuffers();

@@ -44,7 +44,7 @@ void killCL(){
 }
 
 void writeFocalPointsToBuffers(){
-	cl_int status;
+	//cl_int status;
 
 	//printf("Number of focal points: %i\n", numFocalPoints[0]);
 
@@ -54,23 +54,23 @@ void writeFocalPointsToBuffers(){
 
 	
 
-	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufFocalPoints_CL, NULL, NULL, NULL);
+	clEnqueueAcquireGLObjects(cmdQueue, 1, &bufFocalPoints_CL, 0, NULL, NULL);
 	//checkErrorCode("Aquiring bufFocalPoints_CL:\t\t", status);
-	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, NULL, NULL, NULL);
+	clEnqueueAcquireGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, 0, NULL, NULL);
 	//checkErrorCode("Aquiring bufnumFocalPoints_CL:\t\t", status);
 
 
 	// Write arrays to the device buffers. bufPos is unnecessary
-	status = clEnqueueWriteBuffer(cmdQueue, bufFocalPoints_CL, CL_FALSE, 0, NUM_FOCALPOINTS*sizeof(cl_float2), focalPoints, 0, NULL, NULL);
+	clEnqueueWriteBuffer(cmdQueue, bufFocalPoints_CL, CL_FALSE, 0, NUM_FOCALPOINTS*sizeof(cl_float2), focalPoints, 0, NULL, NULL);
 	//checkErrorCode("Writing bufFocalPoints_CL...\t", status);
-	status = clEnqueueWriteBuffer(cmdQueue, bufFocalPoints_CL, CL_FALSE, NUM_FOCALPOINTS*sizeof(cl_float2), NUM_FOCALPOINTS*sizeof(cl_float2), focalPointsW, 0, NULL, NULL);
+	clEnqueueWriteBuffer(cmdQueue, bufFocalPoints_CL, CL_FALSE, NUM_FOCALPOINTS*sizeof(cl_float2), NUM_FOCALPOINTS*sizeof(cl_float2), focalPointsW, 0, NULL, NULL);
 	//checkErrorCode("Writing bufFocalPointsW_CL...\t", status);
-	status = clEnqueueWriteBuffer(cmdQueue, bufnumFocalPoints_CL, CL_TRUE, 0, sizeof(cl_uint), numFocalPoints, 0, NULL, NULL);
+	clEnqueueWriteBuffer(cmdQueue, bufnumFocalPoints_CL, CL_TRUE, 0, sizeof(cl_uint), numFocalPoints, 0, NULL, NULL);
 	//checkErrorCode("Writing bufnumFocalPoints_CL...\t", status);
 
-	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufFocalPoints_CL, NULL, NULL, NULL);
+	clEnqueueReleaseGLObjects(cmdQueue, 1, &bufFocalPoints_CL, 0, NULL, NULL);
 	//checkErrorCode("Releasing bufC:\t\t", status);
-	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, NULL, NULL, NULL);
+	clEnqueueReleaseGLObjects(cmdQueue, 1, &bufnumFocalPoints_CL, 0, NULL, NULL);
 	//checkErrorCode("Releasing bufC:\t\t", status);
 }
 
@@ -80,7 +80,7 @@ void setMemMappings(){
 	cl_float deadZone = DEADZONE;		// Deadzone around focal points
 	cl_float velD = VEL_DAMP;			// Damping constant for particle velocity
 	cl_float AS = WIDTH/(float)HEIGHT;	// Aspect ratio for kernel calculations
-	cl_float2 MP[1];					// Mouse Position buffer to initialize kernel input
+	//cl_float2 MP[1];					// Mouse Position buffer to initialize kernel input
 
 	// Initializing Particle Array ----------------------------
 	float nCol = sqrt(NUM_PARTICLES);	//  Number of particles in a row
@@ -132,18 +132,18 @@ void setMemMappings(){
 
 	// Filling buffers -------------------------------
 	// Release Current Position Buffer from GL to address it
-	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufposC_CL, NULL, NULL, NULL);
+	status = clEnqueueAcquireGLObjects(cmdQueue, 1, &bufposC_CL, 0, NULL, NULL);
 	checkErrorCode("Aquiring bufC:\t\t", status);
 
 	// Initialize the Field Strength Buffer to the values initialized in tempFSarray
-	status = clEnqueueWriteBuffer(cmdQueue, bufFS_CL, CL_FALSE, 0, sizeof(tempFSarray), tempFSarray, NULL, NULL, NULL);
+	status = clEnqueueWriteBuffer(cmdQueue, bufFS_CL, CL_FALSE, 0, sizeof(tempFSarray), tempFSarray, 0, NULL, NULL);
 	checkErrorCode("Copying to bufFS...\t", status);
 	// Initialize the Previous Position Buffer with the Current Position Buffer
-	status = clEnqueueCopyBuffer(cmdQueue, bufposC_CL, bufposP_CL, 0, 0, NUM_PARTICLES*sizeof(cl_float2), NULL, NULL, NULL);
+	status = clEnqueueCopyBuffer(cmdQueue, bufposC_CL, bufposP_CL, 0, 0, NUM_PARTICLES*sizeof(cl_float2), 0, NULL, NULL);
 	checkErrorCode("Copying to bufPosP...\t", status);
 
 	// Release GL VBO after use
-	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufposC_CL, NULL, NULL, NULL);
+	status = clEnqueueReleaseGLObjects(cmdQueue, 1, &bufposC_CL, 0, NULL, NULL);
 	checkErrorCode("Releasing bufC:\t\t", status);
 	// -----------------------------------------------
 
@@ -166,18 +166,18 @@ void runSim(){
 	// Define an index space (global work size) of work items for execution
 	// A workgroup size (local work size) is not required, but can be used.
 	size_t globalWorkSize[1];
-	cl_int status;
+	//cl_int status;
 
 	globalWorkSize[0] = NUM_PARTICLES;
 
 	// Execute the kernel for execution
-	status = clEnqueueNDRangeKernel(cmdQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	clEnqueueNDRangeKernel(cmdQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	//checkErrorCode("Running Sim...\t\t", status);
 }
 
 
 void readBuffer(){
-	cl_int status;
+	//cl_int status;
 
 	// Read the device output buffer to the host output array
 	//status = clEnqueueReadBuffer(cmdQueue, bufposC_CL, CL_FALSE, 0, 32 * sizeof(cl_float2), resultArray, 0, NULL, NULL);
@@ -215,7 +215,7 @@ void compileKernel(){
 
 	char* buildLog;
 	size_t buildLogSize;
-	clGetProgramBuildInfo(program,*devices,CL_PROGRAM_BUILD_LOG, NULL, NULL, &buildLogSize);
+	clGetProgramBuildInfo(program,*devices,CL_PROGRAM_BUILD_LOG, 0, NULL, &buildLogSize);
 	buildLog = (char*)malloc(buildLogSize);
 	clGetProgramBuildInfo(program,*devices,CL_PROGRAM_BUILD_LOG, buildLogSize, buildLog, NULL);
 	if(buildLogSize > 2) printf("%s\n",buildLog);
@@ -270,7 +270,7 @@ void boilerplateCode(){
 
 	char* devName;
 	size_t nameSize;
-	clGetDeviceInfo(devices[0], CL_DEVICE_NAME, NULL, NULL, &nameSize);
+	clGetDeviceInfo(devices[0], CL_DEVICE_NAME, 0, NULL, &nameSize);
 	devName = (char*)malloc(nameSize);
 	clGetDeviceInfo(devices[0], CL_DEVICE_NAME, nameSize, devName, NULL);
 	if(status == CL_SUCCESS && VERBOSE) printf("Using device:\t\t%s\n", devName); 
@@ -279,7 +279,7 @@ void boilerplateCode(){
 	free(devName);
 }
 
-void checkErrorCode(char* action, int errorCode){
+void checkErrorCode(char const* action, int errorCode){
 	if(!VERBOSE) return;
 	else{
 		printf("%s\t",action);

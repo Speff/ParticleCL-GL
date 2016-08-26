@@ -20,4 +20,4 @@ void setMemMappings();
 void runSim();
 void readBuffer();
 void writeFocalPointsToBuffers();
-void checkErrorCode(char*, int);
+void checkErrorCode(char const*, int);

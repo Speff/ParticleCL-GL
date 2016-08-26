@@ -78,8 +78,8 @@ GLuint LoadShader(GLenum eShaderType, const std::string &strShaderFilename)
 GLuint CreateProgram(const std::vector<GLuint> &shaderList)
 {
 	GLuint program = glCreateProgram();
-	GLchar* ProgLog;
-	GLsizei progLog_size;
+	//GLchar* ProgLog;
+	//GLsizei progLog_size;
 	GLint status;
 
 	for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
@@ -133,30 +133,30 @@ void createVBOs(){
 	// ---------------------------------------------------------------------------------------------
 
 	// Initialize FS Array -----------------------------------
-	GLfloat tempFSarray[10];
-	tempFSarray[0] = -200/800.0;
-	tempFSarray[1] = 10/800.0;
-	tempFSarray[2] = 1/800.0;
-	tempFSarray[3] = 1/800.0;
-	tempFSarray[4] = 0/800.0;
-	tempFSarray[5] = 0/800.0;
-	tempFSarray[6] = 2/800.0;
-	tempFSarray[7] = 2/800.0;
-	tempFSarray[8] = 3/800.0;
-	tempFSarray[9] = 2/800.0;
+	//GLfloat tempFSarray[10];
+	//tempFSarray[0] = -200/800.0;
+	//tempFSarray[1] = 10/800.0;
+	//tempFSarray[2] = 1/800.0;
+	//tempFSarray[3] = 1/800.0;
+	//tempFSarray[4] = 0/800.0;
+	//tempFSarray[5] = 0/800.0;
+	//tempFSarray[6] = 2/800.0;
+	//tempFSarray[7] = 2/800.0;
+	//tempFSarray[8] = 3/800.0;
+	//tempFSarray[9] = 2/800.0;
 
 	numFocalPoints[0] = 0;
 	for(int i = 0; i < NUM_FOCALPOINTS; i++){
-		focalPoints[i].s[0] = NULL;
-		focalPoints[i].s[1] = NULL;
+		focalPoints[i].s[0] = 0.0f;
+		focalPoints[i].s[1] = 0.0f;
 
-		focalPointsW[i].s[0] = NULL;
-		focalPointsW[i].s[1] = NULL;
+		focalPointsW[i].s[0] = 0.0f;
+		focalPointsW[i].s[1] = 0.0f;
 	}
 	focalPoints[0].s[0] = 0;
 	focalPoints[0].s[1] = 0;
-	focalPointsW[0].s[0] = NULL;
-	focalPointsW[0].s[1] = NULL;
+	focalPointsW[0].s[0] = 0.0f;
+	focalPointsW[0].s[1] = 0.0f;
 
 	printf("Creating VBOs\n");
 
