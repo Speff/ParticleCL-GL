@@ -51,8 +51,14 @@ int main(int argc, char **argv){
 	glutMouseFunc(mouseClick);
 	glutIdleFunc(NULL);
 
-	glewExperimental = GL_TRUE; 
-	glewInit();
+    // Load OpenGL extensions
+    if(ogl_LoadFunctions() == ogl_LOAD_FAILED){
+        printf("Can't load OpenGL core extensions\n");
+    }
+    // Load OpenGL wgl extensions
+    if(wgl_LoadFunctions(wglGetCurrentDC()) == wgl_LOAD_FAILED){
+        printf("Can't load OpenGL WGL extensions\n");
+    }
 	glGetError();
 	//printf("GL Error: %s\n", gluErrorString(glGetError()));
 	
@@ -65,6 +71,7 @@ int main(int argc, char **argv){
 
 	// Initialize GL Functions and Objects
 	initGL();
+    //wglGetExtensionStringARB();
 	// Wait for GL Programs to Finish
 	glFinish();
 	printf("GL initialized\n");
@@ -120,8 +127,8 @@ void draw(){
 
 	timeElapsed[3] = glutGet(GLUT_ELAPSED_TIME);
 
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	glWindowPos2d(20, 20);
+	//glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	//glWindowPos2d(20, 20);
 	glDisable(GL_TEXTURE);
 	glDisable(GL_TEXTURE_2D);
 	glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)"Testing");

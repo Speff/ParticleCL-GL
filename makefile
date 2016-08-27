@@ -1,18 +1,18 @@
 INCDIR=./include
 CC=g++
 CFLAGS=-I$(INCDIR) -m32 -Wall -static-libgcc -static-libstdc++
-STATIC_FLAGS=-DGLEW_STATIC #-FREEGLUT_STATIC
+STATIC_FLAGS=#-DGLEW_STATIC #-FREEGLUT_STATIC
 
 BINDIR=./bin
 SRCDIR=./src
 OBJDIR=obj
 LIBDIR=./lib
-LIBS=-lm -lglew32_static -lopengl32 -lOpenCL -lfreeglut
+LIBS=-lm -lopengl32 -lOpenCL -lfreeglut
 
-_DEPS=ProgSettings.h Window.h pCL.h pGL.h
+_DEPS=ProgSettings.h Window.h pCL.h pGL.h gl_core_3_3.h wgl_core_3_3.h
 DEPS=$(patsubst %,$(INCDIR)/%,$(_DEPS))
 
-_OBJ=Window.o pCL.o pGL.o
+_OBJ=Window.o pCL.o pGL.o gl_core_3_3.o wgl_core_3_3.o 
 OBJ=$(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
