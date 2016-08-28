@@ -1,10 +1,10 @@
-#ifdef cl_khr_fp64
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#elif defined(cl_amd_fp64)
-#pragma OPENCL EXTENSION cl_amd_fp64 : enable
-#else
-#endif
-#pragma OPENCL EXTENSION cl_khr_gl_sharing : enable
+//#ifdef cl_khr_fp64
+//#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+//#elif defined(cl_amd_fp64)
+//#pragma OPENCL EXTENSION cl_amd_fp64 : enable
+//#else
+//#endif
+//#pragma OPENCL EXTENSION cl_khr_gl_sharing : enable
 
 __kernel void updateParticle(__global float2* posC, 
 							 __global float2* posO, 
@@ -25,10 +25,10 @@ __kernel void updateParticle(__global float2* posC,
 	int fsToUse;
 	int accelLoop = 0;
 
-	const float X_MAX = aspectRatio;
-	const float X_MIN = -aspectRatio;
-	const float Y_MAX = 1.0f;
-	const float Y_MIN = -1.0f;
+	//const float X_MAX = aspectRatio;
+	//const float X_MIN = -aspectRatio;
+	//const float Y_MAX = 1.0f;
+	//const float Y_MIN = -1.0f;
 
 	const float2 AR_Matrix = (float2)(aspectRatio, 1.0f);
 

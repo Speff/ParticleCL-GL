@@ -13,11 +13,10 @@ GLint windowSizeY = HEIGHT;
 
 // OpenCL Variables
 char* kernelSource;
-cl_uint numDevices;
 cl_uint numFocalPoints[1];
 cl_float2 focalPoints[5];
 cl_float2 focalPointsW[5];
-cl_device_id *devices;
+cl_device_id device;
 cl_program program;
 cl_context context;
 cl_command_queue cmdQueue;
@@ -160,7 +159,7 @@ void draw(){
 	loop_counter++;
 	fps_counter += (timeElapsed[5]-(float)timeStarted)/120;
 	if(loop_counter%120 == 0){
-		//printf("FPS: %f\nTime: %f\n", 1000.0f/fps_counter, fps_counter);
+		printf("FPS: %f\nTime: %f\n", 1000.0f/fps_counter, fps_counter);
 		fps_counter = 0;
 	}
 	glutPostRedisplay();

@@ -5,8 +5,7 @@ extern float resultArray[32][2];
 
 // OpenCL Vars
 extern char* kernelSource;
-extern cl_uint numDevices;
-extern cl_device_id *devices;
+extern cl_device_id device;
 extern cl_program program;
 extern cl_context context;
 extern cl_command_queue cmdQueue;
@@ -40,7 +39,6 @@ void killCL(){
     clReleaseProgram(program);
     clReleaseCommandQueue(cmdQueue);
     clReleaseContext(context);
-    free(devices);
 }
 
 void writeFocalPointsToBuffers(){
@@ -210,14 +208,14 @@ void compileKernel(){
     checkErrorCode("Creating program...\t", status);
 
     // Compile the program
-    status = clBuildProgram(program, numDevices, devices, NULL, NULL, NULL);
+    status = clBuildProgram(program, 1, &device, NULL, NULL, NULL);
     checkErrorCode("Compiling program...\t", status);
 
     char* buildLog;
     size_t buildLogSize;
-    clGetProgramBuildInfo(program,*devices,CL_PROGRAM_BUILD_LOG, 0, NULL, &buildLogSize);
+    clGetProgramBuildInfo(program,device,CL_PROGRAM_BUILD_LOG, 0, NULL, &buildLogSize);
     buildLog = (char*)malloc(buildLogSize);
-    clGetProgramBuildInfo(program,*devices,CL_PROGRAM_BUILD_LOG, buildLogSize, buildLog, NULL);
+    clGetProgramBuildInfo(program,device,CL_PROGRAM_BUILD_LOG, buildLogSize, buildLog, NULL);
     if(buildLogSize > 2) printf("%s\n",buildLog);
     free(buildLog);
 
@@ -230,8 +228,6 @@ void boilerplateCode(){
     // Use this to check the output of each API call
     cl_int status;
     cl_uint platformNumber;
-    cl_uint deviceNumber;
-    cl_int createdContext = 0;
 
     // Retrieve the number of platforms
     cl_uint numPlatforms = 0;
@@ -247,44 +243,34 @@ void boilerplateCode(){
     checkErrorCode("Filling platforms...\t", status);
 
     for(platformNumber = 0; platformNumber < numPlatforms; platformNumber++){
-        // Retrieve the number of devices
-        status = clGetDeviceIDs(platforms[platformNumber], CL_DEVICE_TYPE_ALL, 0, NULL, &numDevices);
-        
-        for(deviceNumber = 0; deviceNumber < numDevices; deviceNumber++){
-            // Allocate space for each device
-            devices = (cl_device_id*)malloc(numDevices * sizeof(cl_device_id));
+        clGetGLContextInfoKHR_fn clGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddressForPlatform(platforms[platformNumber], "clGetGLContextInfoKHR");
 
-            // Fill in the devices
-            status = clGetDeviceIDs(platforms[platformNumber], CL_DEVICE_TYPE_ALL, numDevices, devices, NULL);
-            checkErrorCode("Filling devices...\t", status);
-
-            cl_context_properties properties[] = {
-                CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(), // WGL Context  
-                CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(), // WGL HDC
-                CL_CONTEXT_PLATFORM, (cl_context_properties)platforms[platformNumber], // OpenCL platform
-                0
-            };	
-
+        cl_context_properties properties[] = {
+            CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(), // WGL Context  
+            CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(), // WGL HDC
+            CL_CONTEXT_PLATFORM, (cl_context_properties)platforms[platformNumber], // OpenCL platform
+            0
+        };	
+        status = clGetGLContextInfoKHR(properties, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, sizeof(device), &device, NULL);
+        checkErrorCode("Finding OpenGL dev", status);
+        if(status == CL_SUCCESS){
             // Create a contect and associate it with the devices
-            context = clCreateContext(properties, numDevices, devices, NULL, NULL, &status);
+            context = clCreateContext(properties, 1, &device, NULL, NULL, &status);
+            //context = clCreateContextFromType(properties, CL_DEVICE_TYPE_GPU, &pfn_notify, NULL, &status);
             checkErrorCode("Creating context...\t", status);
-            if(status == CL_SUCCESS){
-                createdContext = 1;
-                break;
-            }
+            break;
         }
-        if(createdContext) break;
-    }
+    } 
 
     // Create a command queue and associate it with the device
-    cmdQueue = clCreateCommandQueue(context, devices[deviceNumber], 0, &status);
+    cmdQueue = clCreateCommandQueue(context, device, 0, &status);
     checkErrorCode("Creating cmd queue...\t", status);
 
     char* devName;
     size_t nameSize;
-    clGetDeviceInfo(devices[deviceNumber], CL_DEVICE_NAME, 0, NULL, &nameSize);
+    clGetDeviceInfo(device, CL_DEVICE_NAME, 0, NULL, &nameSize);
     devName = (char*)malloc(nameSize);
-    clGetDeviceInfo(devices[deviceNumber], CL_DEVICE_NAME, nameSize, devName, NULL);
+    clGetDeviceInfo(device, CL_DEVICE_NAME, nameSize, devName, NULL);
     /*if(status == CL_SUCCESS && VERBOSE) */printf("Using device:\t\t%s\n", devName); 
 
     free(platforms);
