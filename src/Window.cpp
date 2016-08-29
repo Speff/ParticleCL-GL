@@ -154,15 +154,18 @@ void draw(){
 	//printf("Time to draw triangles\t\t%i\n", timeElapsed[4]-timeElapsed[3]);
 	//printf("Time to release GLbuf\t\t%i\n", timeElapsed[5]-timeElapsed[4]);
 	//printf("Total time\t\t\t%i\n\n", timeElapsed[5]-timeStarted);
+    //printf("Timestamp finished draw: %i\n", glutGet(GLUT_ELAPSED_TIME));
 
+    // Force 60-FPS. Redisplay is called in (16-drawTime)ms
+    int timeToRedraw = 16 - (glutGet(GLUT_ELAPSED_TIME) - timeStarted);
+    if(timeToRedraw > 0) glutTimerFunc(timeToRedraw, redrawTimer, 0);
+    else{
+        glutPostRedisplay();
+    }
+}
 
-	loop_counter++;
-	fps_counter += (timeElapsed[5]-(float)timeStarted)/120;
-	if(loop_counter%120 == 0){
-		//printf("FPS: %f\nTime: %f\n", 1000.0f/fps_counter, fps_counter);
-		fps_counter = 0;
-	}
-	glutPostRedisplay();
+void redrawTimer(int dummy){
+    glutPostRedisplay();
 }
 
 void key(unsigned char key, int xmouse, int ymouse){	
