@@ -6,6 +6,7 @@
 
 void draw();
 void redrawTimer(int);
+void screendump(int, int);
 void key(unsigned char, int, int);
 void fKey(int, int, int);
 void reshape(int, int);

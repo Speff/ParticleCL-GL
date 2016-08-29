@@ -10,10 +10,10 @@ LIBDIR=./lib
 
 LIBS=-lm -lopengl32 -lOpenCL -lfreeglut
 
-_DEPS=ProgSettings.h Window.h pCL.h pGL.h gl_core_3_3.h wgl_core_3_3.h
+_DEPS=ProgSettings.h Window.h pCL.h pGL.h gl_core_3_3.h
 DEPS=$(patsubst %,$(INCDIR)/%,$(_DEPS))
 
-_OBJ=Window.o pCL.o pGL.o gl_core_3_3.o wgl_core_3_3.o 
+_OBJ=Window.o pCL.o pGL.o gl_core_3_3.o
 OBJ=$(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)

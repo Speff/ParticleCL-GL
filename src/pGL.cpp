@@ -195,7 +195,6 @@ void initGL(){
 	glBindVertexArray(vao);
 	//glUseProgram(0);
 
-	glClearColor(0.0, 0.0, 0.0, 1.0);
 
 	glFinish();
 }

@@ -1,5 +1,4 @@
 #include "gl_core_3_3.h"
-#include "wgl_core_3_3.h"
 #include <GL/glut.h>
 #include <GL/freeglut.h>
 #include <CL/cl.h>

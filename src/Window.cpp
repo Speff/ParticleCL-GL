@@ -8,6 +8,7 @@ float mouseY = 0;
 float fps_counter = 0.0f;
 int loop_counter = 0;
 bool fullscreen = false;
+bool takeSnapshot = false;
 GLint windowSizeX = WIDTH;
 GLint windowSizeY = HEIGHT;
 
@@ -40,7 +41,7 @@ int main(int argc, char **argv){
 	glutInitContextVersion(3, 3);
 	glutInitWindowSize(WIDTH,HEIGHT);
 	glutCreateWindow("OpenCL-GL Demo");
-	glutInitDisplayMode(GLUT_DEPTH || GLUT_DOUBLE || GLUT_RGB);
+	glutInitDisplayMode(GLUT_DEPTH || GLUT_DOUBLE || GLUT_RGBA || GLUT_ALPHA);
 
 	glutKeyboardFunc(key);
 	glutSpecialFunc(fKey);
@@ -54,19 +55,17 @@ int main(int argc, char **argv){
     if(ogl_LoadFunctions() == ogl_LOAD_FAILED){
         printf("Can't load OpenGL core extensions\n");
     }
-    // Load OpenGL wgl extensions
-    if(wgl_LoadFunctions(wglGetCurrentDC()) == wgl_LOAD_FAILED){
-        printf("Can't load OpenGL WGL extensions\n");
-    }
-	glGetError();
 	//printf("GL Error: %s\n", gluErrorString(glGetError()));
 	
 	//glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
 	//glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 	//glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glBlendFunc(GL_SRC_ALPHA, GL_DST_ALPHA);
 
+
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	// Initialize GL Functions and Objects
 	initGL();
@@ -113,7 +112,7 @@ void draw(){
 
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	glUseProgram(theProgram);
 
@@ -124,15 +123,13 @@ void draw(){
 	glUniform1i(glGetUniformLocation(theProgram, "timePassed"), glutGet(GLUT_ELAPSED_TIME));
 
 
-	timeElapsed[3] = glutGet(GLUT_ELAPSED_TIME);
-
 	//glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	//glWindowPos2d(20, 20);
-	glDisable(GL_TEXTURE);
-	glDisable(GL_TEXTURE_2D);
-	glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)"Testing");
-	glEnable(GL_TEXTURE);
-	glEnable(GL_TEXTURE_2D);
+	//glDisable(GL_TEXTURE);
+	//glDisable(GL_TEXTURE_2D);
+	//glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)"Testing");
+	//glEnable(GL_TEXTURE);
+	//glEnable(GL_TEXTURE_2D);
 
 
 	glDrawArrays(GL_POINTS, 0, NUM_PARTICLES);
@@ -146,6 +143,12 @@ void draw(){
 	glutSwapBuffers();
 
 	timeElapsed[5] = glutGet(GLUT_ELAPSED_TIME);
+
+    if(takeSnapshot){
+        screendump(WIDTH, HEIGHT);
+        printf("Took screenshot\n");
+        takeSnapshot = false;
+    }
 
 	//printf("Time to acquire objects\t\t%i\n", timeElapsed[0]-timeStarted);
 	//printf("Time to run kernel\t\t%i\n", timeElapsed[1]-timeElapsed[0]);
@@ -164,6 +167,19 @@ void draw(){
     }
 }
 
+void screendump(int W, int H) {
+    FILE   *out = fopen("screenshot.tga","wb");
+    char   *pixel_data = new char[4*W*H];
+    short  TGAhead[] = { 0, 2, 0, 0, 0, 0, (short)W, (short)H, 32 };
+
+    glReadBuffer(GL_FRONT);
+    glReadPixels(0, 0, W, H, GL_BGRA, GL_UNSIGNED_BYTE, pixel_data);
+
+    fwrite(TGAhead, sizeof(TGAhead), 1, out);
+    fwrite(pixel_data, 4*W*H, 1, out);
+    fclose(out);
+}
+
 void redrawTimer(int dummy){
     glutPostRedisplay();
 }
@@ -178,6 +194,10 @@ void key(unsigned char key, int xmouse, int ymouse){
 	case ' ': 
 		glutLeaveMainLoop();
 		break;
+
+    case 'q':
+        takeSnapshot = true;
+        break;
 
 	default:
 		break;
