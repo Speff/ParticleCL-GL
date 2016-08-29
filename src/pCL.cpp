@@ -211,12 +211,22 @@ void compileKernel(){
     status = clBuildProgram(program, 1, &device, NULL, NULL, NULL);
     checkErrorCode("Compiling program...\t", status);
 
+    cl_build_status buildStatus;
+    clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_STATUS, sizeof(buildStatus), &buildStatus, 0);
+    printf("Build status...\t\t\t");
+    if(buildStatus == CL_BUILD_SUCCESS) printf("CL_BUILD_SUCCESS\n");
+    else if(buildStatus == CL_BUILD_NONE) printf("CL_BUILD_NONE\n");
+    else if(buildStatus == CL_BUILD_ERROR) printf("CL_BUILD_ERROR\n");
+    else if(buildStatus == CL_BUILD_IN_PROGRESS) printf("CL_BUILD_IN_PROGRESS\n");
+
     char* buildLog;
     size_t buildLogSize;
     clGetProgramBuildInfo(program,device,CL_PROGRAM_BUILD_LOG, 0, NULL, &buildLogSize);
     buildLog = (char*)malloc(buildLogSize);
-    clGetProgramBuildInfo(program,device,CL_PROGRAM_BUILD_LOG, buildLogSize, buildLog, NULL);
-    if(buildLogSize > 2) printf("%s\n",buildLog);
+    status = clGetProgramBuildInfo(program,device,CL_PROGRAM_BUILD_LOG, buildLogSize, buildLog, NULL);
+    checkErrorCode("Get kernel build log...\t", status);
+    //if(buildLogSize > 2) 
+    printf("Build log:\n%s\n",buildLog);
     free(buildLog);
 
     // Create the vector addition kernel
@@ -252,7 +262,7 @@ void boilerplateCode(){
             0
         };	
         status = clGetGLContextInfoKHR(properties, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, sizeof(device), &device, NULL);
-        checkErrorCode("Finding OpenGL dev", status);
+        checkErrorCode("Finding OpenGL dev\t", status);
         if(status == CL_SUCCESS){
             // Create a contect and associate it with the devices
             context = clCreateContext(properties, 1, &device, NULL, NULL, &status);
@@ -271,7 +281,7 @@ void boilerplateCode(){
     clGetDeviceInfo(device, CL_DEVICE_NAME, 0, NULL, &nameSize);
     devName = (char*)malloc(nameSize);
     clGetDeviceInfo(device, CL_DEVICE_NAME, nameSize, devName, NULL);
-    /*if(status == CL_SUCCESS && VERBOSE) */printf("Using device:\t\t%s\n", devName); 
+    /*if(status == CL_SUCCESS && VERBOSE) */printf("Using device:\t\t\t%s\n", devName); 
 
     free(platforms);
     free(devName);
